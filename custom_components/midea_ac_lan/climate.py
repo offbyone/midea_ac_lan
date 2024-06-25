@@ -1,15 +1,35 @@
 import logging
+from functools import cached_property
 
-from homeassistant.components.climate import *
-from homeassistant.components.climate.const import *
+from homeassistant.components.climate import ClimateEntity
+from homeassistant.components.climate.const import (
+    ATTR_HVAC_MODE,
+    FAN_AUTO,
+    FAN_HIGH,
+    FAN_LOW,
+    FAN_MEDIUM,
+    PRESET_AWAY,
+    PRESET_BOOST,
+    PRESET_COMFORT,
+    PRESET_ECO,
+    PRESET_NONE,
+    PRESET_SLEEP,
+    SWING_BOTH,
+    SWING_HORIZONTAL,
+    SWING_OFF,
+    SWING_ON,
+    SWING_VERTICAL,
+    ClimateEntityFeature,
+    HVACMode,
+)
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     CONF_DEVICE_ID,
     CONF_SWITCHES,
     PRECISION_HALVES,
     PRECISION_WHOLE,
-    TEMP_CELSIUS,
     Platform,
+    UnitOfTemperature,
 )
 
 from .const import (
@@ -60,7 +80,7 @@ class MideaClimate(MideaEntity, ClimateEntity):
     def __init__(self, device, entity_key):
         super().__init__(device, entity_key)
 
-    @property
+    @cached_property
     def supported_features(self):
         return (
             ClimateEntityFeature.TARGET_TEMPERATURE
@@ -70,31 +90,31 @@ class MideaClimate(MideaEntity, ClimateEntity):
             | ClimateEntityFeature.AUX_HEAT
         )
 
-    @property
+    @cached_property
     def min_temp(self):
         return TEMPERATURE_MIN
 
-    @property
+    @cached_property
     def max_temp(self):
         return TEMPERATURE_MAX
 
-    @property
+    @cached_property
     def temperature_unit(self):
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
-    @property
+    @cached_property
     def target_temperature_low(self):
         return TEMPERATURE_MIN
 
-    @property
+    @cached_property
     def target_temperature_high(self):
         return TEMPERATURE_MAX
 
-    @property
+    @cached_property
     def hvac_modes(self):
         return self._modes
 
-    @property
+    @cached_property
     def swing_modes(self):
         return self._swing_modes
 
@@ -102,26 +122,26 @@ class MideaClimate(MideaEntity, ClimateEntity):
     def is_on(self) -> bool:
         return self.hvac_mode != HVACMode.OFF
 
-    @property
-    def hvac_mode(self) -> str:
+    @cached_property
+    def hvac_mode(self) -> HVACMode:
         if self._device.get_attribute("power"):
             return self._modes[self._device.get_attribute("mode")]
         else:
             return HVACMode.OFF
 
-    @property
+    @cached_property
     def target_temperature(self):
         return self._device.get_attribute("target_temperature")
 
-    @property
+    @cached_property
     def current_temperature(self):
         return self._device.get_attribute("indoor_temperature")
 
-    @property
+    @cached_property
     def preset_modes(self):
         return self._preset_modes
 
-    @property
+    @cached_property
     def preset_mode(self):
         if self._device.get_attribute("comfort_mode"):
             mode = PRESET_COMFORT
@@ -137,7 +157,7 @@ class MideaClimate(MideaEntity, ClimateEntity):
             mode = PRESET_NONE
         return mode
 
-    @property
+    @cached_property
     def extra_state_attributes(self) -> dict:
         return self._device.attributes
 
@@ -150,7 +170,7 @@ class MideaClimate(MideaEntity, ClimateEntity):
     def set_temperature(self, **kwargs) -> None:
         if ATTR_TEMPERATURE not in kwargs:
             return
-        temperature = float(int((float(kwargs.get(ATTR_TEMPERATURE)) * 2) + 0.5)) / 2
+        temperature = float(int((float(kwargs[ATTR_TEMPERATURE]) * 2) + 0.5)) / 2
         hvac_mode = kwargs.get(ATTR_HVAC_MODE)
         if hvac_mode == HVACMode.OFF:
             self.turn_off()
@@ -243,11 +263,11 @@ class MideaACClimate(MideaClimate):
             PRESET_AWAY,
         ]
 
-    @property
+    @cached_property
     def fan_modes(self):
         return list(self._fan_speeds.keys())
 
-    @property
+    @cached_property
     def fan_mode(self) -> str:
         fan_speed = self._device.get_attribute(ACAttributes.fan_speed)
         if fan_speed > 100:
@@ -263,13 +283,13 @@ class MideaACClimate(MideaClimate):
         else:
             return FAN_SILENT.capitalize()
 
-    @property
+    @cached_property
     def target_temperature_step(self):
         return (
             PRECISION_WHOLE if self._device.temperature_step == 1 else PRECISION_HALVES
         )
 
-    @property
+    @cached_property
     def swing_mode(self):
         swing_mode = (
             1 if self._device.get_attribute(ACAttributes.swing_vertical) else 0
@@ -308,19 +328,19 @@ class MideaCCClimate(MideaClimate):
         self._swing_modes = [SWING_OFF.capitalize(), SWING_ON.capitalize()]
         self._preset_modes = [PRESET_NONE, PRESET_SLEEP, PRESET_ECO]
 
-    @property
+    @cached_property
     def fan_modes(self):
         return self._device.fan_modes
 
-    @property
+    @cached_property
     def fan_mode(self) -> str:
         return self._device.get_attribute(CCAttributes.fan_speed)
 
-    @property
+    @cached_property
     def target_temperature_step(self):
         return self._device.get_attribute(CCAttributes.temperature_precision)
 
-    @property
+    @cached_property
     def swing_mode(self):
         return (
             SWING_ON.capitalize()
@@ -343,31 +363,31 @@ class MideaCFClimate(MideaClimate):
         super().__init__(device, entity_key)
         self._modes = [HVACMode.OFF, HVACMode.AUTO, HVACMode.COOL, HVACMode.HEAT]
 
-    @property
+    @cached_property
     def supported_features(self):
         return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.AUX_HEAT
 
-    @property
+    @cached_property
     def target_temperature_step(self):
         return PRECISION_WHOLE
 
-    @property
+    @cached_property
     def min_temp(self):
         return self._device.get_attribute(CFAttributes.min_temperature)
 
-    @property
+    @cached_property
     def max_temp(self):
         return self._device.get_attribute(CFAttributes.max_temperature)
 
-    @property
+    @cached_property
     def target_temperature_low(self):
         return self._device.get_attribute(CFAttributes.min_temperature)
 
-    @property
+    @cached_property
     def target_temperature_high(self):
         return self._device.get_attribute(CFAttributes.max_temperature)
 
-    @property
+    @cached_property
     def current_temperature(self):
         return self._device.get_attribute(CFAttributes.current_temperature)
 
@@ -384,11 +404,11 @@ class MideaC3Climate(MideaClimate):
         self._modes = [HVACMode.OFF, HVACMode.AUTO, HVACMode.COOL, HVACMode.HEAT]
         self._power_attr = MideaC3Climate._powers[self._zone]
 
-    @property
+    @cached_property
     def supported_features(self):
         return ClimateEntityFeature.TARGET_TEMPERATURE
 
-    @property
+    @cached_property
     def target_temperature_step(self):
         return (
             PRECISION_WHOLE
@@ -396,19 +416,19 @@ class MideaC3Climate(MideaClimate):
             else PRECISION_HALVES
         )
 
-    @property
+    @cached_property
     def min_temp(self):
         return self._device.get_attribute(C3Attributes.temperature_min)[self._zone]
 
-    @property
+    @cached_property
     def max_temp(self):
         return self._device.get_attribute(C3Attributes.temperature_max)[self._zone]
 
-    @property
+    @cached_property
     def target_temperature_low(self):
         return self._device.get_attribute(C3Attributes.temperature_min)[self._zone]
 
-    @property
+    @cached_property
     def target_temperature_high(self):
         return self._device.get_attribute(C3Attributes.temperature_max)[self._zone]
 
@@ -418,25 +438,25 @@ class MideaC3Climate(MideaClimate):
     def turn_off(self):
         self._device.set_attribute(attr=self._power_attr, value=False)
 
-    @property
-    def hvac_mode(self) -> str:
+    @cached_property
+    def hvac_mode(self) -> HVACMode:
         if self._device.get_attribute(self._power_attr):
             return self._modes[self._device.get_attribute(C3Attributes.mode)]
         else:
             return HVACMode.OFF
 
-    @property
+    @cached_property
     def target_temperature(self):
         return self._device.get_attribute(C3Attributes.target_temperature)[self._zone]
 
-    @property
+    @cached_property
     def current_temperature(self):
         return None
 
     def set_temperature(self, **kwargs) -> None:
         if ATTR_TEMPERATURE not in kwargs:
             return
-        temperature = float(int((float(kwargs.get(ATTR_TEMPERATURE)) * 2) + 0.5)) / 2
+        temperature = float(int((float(kwargs[ATTR_TEMPERATURE]) * 2) + 0.5)) / 2
         hvac_mode = kwargs.get(ATTR_HVAC_MODE)
         if hvac_mode == HVACMode.OFF:
             self.turn_off()
@@ -454,7 +474,7 @@ class MideaC3Climate(MideaClimate):
         if hvac_mode == HVACMode.OFF:
             self.turn_off()
         else:
-            self._device.set_mode(self._zone, self._modes.index(hvac_mode))
+            self._device.set_mode(self._zone, self._modes.index(HVACMode[hvac_mode]))
 
 
 class MideaFBClimate(MideaClimate):
@@ -463,56 +483,56 @@ class MideaFBClimate(MideaClimate):
         self._modes = [HVACMode.OFF, HVACMode.HEAT]
         self._preset_modes = self._device.modes
 
-    @property
+    @cached_property
     def supported_features(self):
         return (
             ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
         )
 
-    @property
+    @cached_property
     def target_temperature_step(self):
         return PRECISION_WHOLE
 
-    @property
+    @cached_property
     def preset_modes(self):
         return self._preset_modes
 
-    @property
+    @cached_property
     def preset_mode(self):
         return self._device.get_attribute(attr=FBAttributes.mode)
 
-    @property
+    @cached_property
     def min_temp(self):
         return 5
 
-    @property
+    @cached_property
     def max_temp(self):
         return 35
 
-    @property
+    @cached_property
     def target_temperature_low(self):
         return 5
 
-    @property
+    @cached_property
     def target_temperature_high(self):
         return 35
 
-    @property
-    def hvac_mode(self) -> str:
+    @cached_property
+    def hvac_mode(self) -> HVACMode:
         return (
             HVACMode.HEAT
             if self._device.get_attribute(attr=FBAttributes.power)
             else HVACMode.OFF
         )
 
-    @property
+    @cached_property
     def current_temperature(self):
         return self._device.get_attribute(FBAttributes.current_temperature)
 
     def set_temperature(self, **kwargs) -> None:
         if ATTR_TEMPERATURE not in kwargs:
             return
-        temperature = float(int((float(kwargs.get(ATTR_TEMPERATURE)) * 2) + 0.5)) / 2
+        temperature = float(int((float(kwargs[ATTR_TEMPERATURE]) * 2) + 0.5)) / 2
         hvac_mode = kwargs.get(ATTR_HVAC_MODE)
         if hvac_mode == HVACMode.OFF:
             self.turn_off()

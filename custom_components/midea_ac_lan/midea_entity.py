@@ -1,8 +1,12 @@
+import logging
+from functools import cached_property
+
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
+
 from .const import DOMAIN
 from .midea_devices import MIDEA_DEVICES
 
-import logging
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -15,40 +19,43 @@ class MideaEntity(Entity):
         self._unique_id = f"{DOMAIN}.{self._device.device_id}_{entity_key}"
         self.entity_id = self._unique_id
         self._device_name = self._device.name
-    
+
     @property
     def device(self):
         return self._device
 
-    @property
-    def device_info(self):
+    @cached_property
+    def device_info(self) -> DeviceInfo:
         return {
             "manufacturer": "Midea",
             "model": f"{MIDEA_DEVICES[self._device.device_type]['name']} "
-                     f"{self._device.model}"
-                     f" ({self._device.subtype})",
+            f"{self._device.model}"
+            f" ({self._device.subtype})",
             "identifiers": {(DOMAIN, self._device.device_id)},
-            "name": self._device_name
+            "name": self._device_name,
         }
 
-    @property
+    @cached_property
     def unique_id(self):
         return self._unique_id
 
-    @property
+    @cached_property
     def should_poll(self):
         return False
 
-    @property
+    @cached_property
     def name(self):
-        return f"{self._device_name} {self._config.get('name')}" if "name" in self._config \
+        return (
+            f"{self._device_name} {self._config.get('name')}"
+            if "name" in self._config
             else self._device_name
+        )
 
-    @property
+    @cached_property
     def available(self):
         return self._device.available
 
-    @property
+    @cached_property
     def icon(self):
         return self._config.get("icon")
 
@@ -57,4 +64,6 @@ class MideaEntity(Entity):
             try:
                 self.schedule_update_ha_state()
             except Exception as e:
-                _LOGGER.debug(f"Entity {self.entity_id} update_state {repr(e)}, status = {status}")
+                _LOGGER.debug(
+                    f"Entity {self.entity_id} update_state {repr(e)}, status = {status}"
+                )
