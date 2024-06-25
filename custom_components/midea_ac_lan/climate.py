@@ -1,6 +1,6 @@
-from homeassistant.components.climate import *
 import logging
 
+from homeassistant.components.climate import *
 from homeassistant.components.climate.const import *
 from homeassistant.const import (
     ATTR_TEMPERATURE,
@@ -116,10 +116,6 @@ class MideaClimate(MideaEntity, ClimateEntity):
     @property
     def current_temperature(self):
         return self._device.get_attribute("indoor_temperature")
-
-    @property
-    def is_aux_heat(self):
-        return self._device.get_attribute("aux_heating")
 
     @property
     def preset_modes(self):
